@@ -5,12 +5,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>贪吃蛇</title>
+    <style>
+        body {
+            background-image: url(bg.jpg)
+        }
+    </style>
 </head>
 
 <body>
-    测试用个人主页
+    <script>
+        //建立1个数组，用于存放蛇的身体
+        //food用于存放食物元素
+        var food;
+        var body = [];
+        var isPlayed = false;
+        var isauto = 0;
+        //score是积分板
+        var score = document.createElement('p');
+        score.style.fontSize = '20px';
+        score.style.position = 'fixed';
+        score.style.zIndex = '999999999';
+        score.style.margin = '0';
+        score.style.left = '10px';
+        score.style.top = '10px';
+        document.body.appendChild(score);
+        //为了方便使用，将所有的圆当成一个对象
+        //这个对象有两个方法
+        //centerX：返回圆心相对于父元素左边框的距离
+        //centerY：返回圆心相对于父元素顶边框的距离
+        //同时有两个属性
+        //moveX元素x轴移动的递增量
+        //moveY元素y轴移动的递增量
+        function circleObj(element) {
+            this.Ele = element;
+            this.centerX = function() {
+                return this.Ele.offsetLeft + this.Ele.offsetWidth / 2
+            };
+            this.centerY = function() {
+                return this.Ele.offsetTop + this.Ele.offsetHeight / 2
+            };
+            this.moveX = 0;
+            this.moveY = 0;
+        }
+        //随机函数
+        //一个参数时 返回从0到该参数的随机整数
+        //两个参数时 第一个为最大值 第二个为最小值 返回他们之间的随机数
+        function random(max, min) {
+            min = min || 0;
+            return Math.round(Math.random() * (max - min) + min);
+        }
+        //随机颜色 返回一个rgb（）字符串
+        function randomRGB() {
+            return 'rgb(' + random(255) + ',' + random(255) + ',' + random(255) + ')'
+        }
+        //创建圆 大小为50px 
+        //参数x为距离body左边的距离
+        //参数y为距离body顶部的距离
+        //针对这两个距离的偏移是以圆心为基准的
+        function circle(x, y) {
+            var element = document.createElement('div');
+            element.style.borderRadius = '50%';
+            element.style.width = '50px';
+            element.style.height = '50px';
+            element.style.position = 'fixed';
+            element.style.top = (y - 25) + 'px';
+            element.style.left = (x - 25) + 'px';
+            element.style.backgroundColor = randomRGB();
+            document.body.appendChild(element);
+            return new circleObj(element);
+        }
+        //初始化函数
+        function init() {
+            //给body添加第一个圆 也就是蛇的头部
+            body.push(circle(window.innerWidth / 2, window.innerHeight / 2));
+            //给食物赋初始值
+            food = circle(random(window.innerWidth), random(window.innerHeight));
+            //给widows设置焦点， 没有焦点的元素是无法获取keydown事件的
+            window.focus();
+            //添加监听
+            window.addEventListener('keydown', function(event) {
+                if (!isPlayed) {
+                    isPlayed = true;
+                    for (var i = 0; i < body.length; i++) {
+                        document.body.removeChild(body[i].Ele);
+                    }
+                    body = [];
+                    body.push(circle(window.innerWidth / 2, window.innerHeight / 2));
+                    document.body.removeChild(food.Ele);
+                    food = circle(random(window.innerWidth), random(window.innerHeight));
+                }
+                clearTimeout(isauto);
+                //当按键为‘W’时
+                if (event.keyCode == 87) {
+                    body[0].moveY = -10;
+                    body[0].moveX = 0;
+                }
+                //当按键为‘S’时                
+                if (event.keyCode == 83) {
+                    body[0].moveY = 10;
+                    body[0].moveX = 0;
+                }
+                //当按键为‘A’时                
+                if (event.keyCode == 65) {
+                    body[0].moveY = 0;
+                    body[0].moveX = -10;
+                }
+                //当按键为‘D’时                
+                if (event.keyCode == 68) {
+                    body[0].moveY = 0;
+                    body[0].moveX = 10;
+                }
+            });
+            move();
+            if (!isPlayed) setTimeout(autoMode, 5000);
 
+        }
+
+        function autoMode() {
+            if (body[0].centerY() < food.centerY()) body[0].moveY = 10;
+            if (body[0].centerY() > food.centerY()) body[0].moveY = -10;
+            if (body[0].centerX() < food.centerX()) body[0].moveX = 10;
+            if (body[0].centerX() > food.centerX()) body[0].moveX = -10;
+            isauto = setTimeout(autoMode, 1000 / 5);
+        }
+
+        //用于计算body中圆位移的函数
+        function move() {
+            setTimeout(move, 1000 / 30);
+
+            //moveX和moveY是circleObj的属性 这里通过每次叠加它们的值来计算位移
+            for (var i = 0; i < body.length; i++) {
+                body[i].Ele.style.top = body[i].Ele.offsetTop + body[i].moveY + 'px';
+                body[i].Ele.style.left = body[i].Ele.offsetLeft + body[i].moveX + 'px';
+                //如果头部碰到边界 反弹
+                if (body[0].centerX() - 25 <= 0) body[0].moveX = 10;
+                if (body[0].centerX() + 25 >= window.innerWidth) body[0].moveX = -10;
+                if (body[0].centerY() - 25 <= 0) body[0].moveY = 10;
+                if (body[0].centerY() + 25 >= window.innerHeight) body[0].moveY = -10;
+                eat();
+                follow();
+            }
+        }
+
+        // function runer() {
+        //     setTimeout(runer, 1000 / 10);
+
+        //     follow()
+        // }
+
+        function follow() {
+            //k是一个参数 必须大于0 下面会用到
+            var k = 0.5;
+            //通过圆心坐标来计算位移量
+            //k是一个参数 可以理解为跟随度
+            //k越大 body内各个圆的间距越小 建议不要超过1 
+            for (var i = 1; i < body.length; i++) {
+                body[i].moveY = (body[i - 1].centerY() - body[i].centerY()) * k;
+                body[i].moveX = (body[i - 1].centerX() - body[i].centerX()) * k;
+            }
+        }
+
+        function eat() {
+            score.innerHTML = 'score:' + (body.length - 1);
+            //为了方便 把蛇头的圆心和食物的圆心存起来
+            var headX = body[0].centerX();
+            var headY = body[0].centerY();
+            var foodX = food.centerX();
+            var foodY = food.centerY();
+            //用两点间距离公式计算出蛇头和食物的距离
+            var distance = Math.sqrt((headX - foodX) * (headX - foodX) + (headY - foodY) * (headY - foodY));
+            //当蛇头和食物的圆心距离小于™的半径和（这里是50）时 说明两元素发生了碰撞检测
+            //这个是碰撞检测中最简单的一种
+            //圆的碰撞检测
+            //在检测到碰撞后 把food 加进body中 同时给food重新负值
+            //body[body.length-1].Ele!=food.Ele 这句是为了防止同一个food被重复添加
+            if (distance < 50 && body[body.length - 1].Ele != food.Ele) {
+                body.push(food);
+                food = circle(random(window.innerWidth), random(window.innerHeight));
+            }
+        }
+        //进行初始化
+        init();
+    </script>
 </body>
 
 </html>
